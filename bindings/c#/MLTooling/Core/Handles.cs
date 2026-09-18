@@ -10,41 +10,28 @@ abstract class NativeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {}
 }
 
-internal sealed class MatrixFHandle : NativeHandle
+internal sealed class TensorHandle : NativeHandle
 {
-    public MatrixFHandle()
+    private long _pressureBytes;
+
+
+    public TensorHandle()
     {}
+
+    internal void SetMemoryPressure(long bytes)
+    {
+        _pressureBytes = bytes;
+        GC.AddMemoryPressure(bytes);
+    }
 
     protected override bool ReleaseHandle()
     {
-        MltNative.mltFwMatrixFDestroy(handle);
+        MltNative.mltTensorDestroy(handle);
+
+        if (_pressureBytes > 0)
+            GC.RemoveMemoryPressure(_pressureBytes);
 
         return true;
     }
 }
 
-internal sealed class VectorFHandle : NativeHandle
-{
-    public VectorFHandle()
-    {}
-
-    protected override bool ReleaseHandle()
-    {
-        MltNative.mltVectorFDestroy(handle);    
-
-        return true;
-    }
-}
-
-internal sealed class LinearRegressionHandle : NativeHandle
-{
-    public LinearRegressionHandle()
-    {}
-
-    protected override bool ReleaseHandle()
-    {
-        MltNative.mltLinearRegressionDestroy(handle);
-
-        return true;
-    }
-}

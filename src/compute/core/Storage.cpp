@@ -1,7 +1,6 @@
 module;
 #include <mlt/internal/compute/core/RefCount.hpp>
 
-#include <array>
 #include <charconv>
 #include <cstring>
 #include <expected>

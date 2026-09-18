@@ -70,10 +70,7 @@ Result<MltArray> mlt::compute::ops::matmul(const MltArray& a, const MltArray& b)
         static_cast<int>(N)
     );
 
-    
     return result;
-    // returns the result from the runtime
-    // return MltArray::from(MLT_MOVE_VALUE(DefaultSizeArray::from({2})), a.dType);
 }
 
 Result<MltArray> mlt::compute::ops::add(const MltArray& a, const MltArray& b) noexcept

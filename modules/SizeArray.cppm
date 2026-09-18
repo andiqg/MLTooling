@@ -45,6 +45,13 @@ export namespace mlt::compute::core
             std::copy(init.begin(), init.end(), mData.begin());
         }
 
+        SizeArray(std::span<const size_t> shape)
+            : mLen(std::min(Size, shape.size()))
+        {
+            assert(shape.size() <= Size);
+            std::copy_n(shape.begin(), mLen, mData.begin());
+        }
+
 
         ~SizeArray() = default;
         SizeArray(const SizeArray& other) noexcept = default; 

@@ -4,6 +4,7 @@ module;
 
 #include <cstddef>
 #include <span>
+#include <vector>
 
 export module mlt.compute.Tensor;
 
@@ -27,6 +28,8 @@ namespace mlt::compute
 
         static mlt::core::Result<Tensor> from(std::initializer_list<size_t> shape) noexcept;
         static mlt::core::Result<Tensor> from(std::span<const float> buf, std::initializer_list<size_t> shape) noexcept;
+        static mlt::core::Result<Tensor> from(std::span<const size_t> shape) noexcept;
+        static mlt::core::Result<Tensor> from(std::span<const float> buf, std::span<const size_t> shape) noexcept;
 
         Tensor transpose() const noexcept;
 
@@ -43,5 +46,13 @@ namespace mlt::compute
             MLT_TRY(val, mArray.at(idx...));
             return val;
         }
+
+        mlt::core::Result<float*> at(std::span<const size_t> indices) noexcept;
+        mlt::core::Result<float> at(std::span<const size_t> indices) const noexcept;
+        std::vector<size_t> shape() const;
+
+        mlt::core::Result<Tensor> matmul(const Tensor& other) const noexcept;
     };
+
+    mlt::core::Result<Tensor> matmul(const Tensor& a, const Tensor& b) noexcept;
 }

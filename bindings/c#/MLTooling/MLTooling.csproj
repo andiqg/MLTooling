@@ -7,20 +7,20 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
-        <None Include="native-cpp\win-x64\MLToolingCwrapper.dll">
+        <None Include="native-cpp\win-x64\MLTooling.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-        <None Include="native-cpp\linux-x64\libMLToolingCwrapper.so">
+        <None Include="native-cpp\linux-x64\libMLToolingC.so">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>libMLToolingCwrapper.so</Link>
+            <Link>libMLToolingC.so</Link>
         </None>
     </ItemGroup>
 
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64'">
-        <None Include="native-cpp\osx-x64\libmlt_cwrapper.dylib">
+        <None Include="native-cpp\osx-x64\libmlt_c.dylib">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

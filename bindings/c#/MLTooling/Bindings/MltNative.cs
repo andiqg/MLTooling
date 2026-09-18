@@ -1,258 +1,107 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Text;
 
-namespace MLTooling.Bindings;
 using MLTooling.Core.Handles;
 
-using size_t = UIntPtr;
+namespace MLTooling.Bindings;
 
-internal enum MltStatus
+using size_t = nuint;
+using ptr = nint;
+
+internal enum MLTErrorType : int
 {
-    SUCCESS = 0,
-    NULL_PTR,
-    INTERNAL_ERROR,
-    ALLOCATION_FAILED,
-    ALLOCATION_TOO_LARGE,
-    OUT_OF_BOUNDS,
-    SHAPE_MISSMATCH
+    Ok = 0,
+    NullPointer,
+    OutOfMemory,
+    InvalidAlignment,
+    OutOfBounds,
+    TypeMismatch,
+    RankMismatch,
+    ShapeMismatch,
+    InvalidArgument,
+    InternalError,
+}
+
+[InlineArray(MltNative.MaxDims)]
+internal struct MLTDims
+{
+    private size_t _element0;
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct MltShape
+internal struct MLTshape
 {
-    public size_t rows;
-    public size_t cols;
+    public MLTDims Dims;
+    public size_t Size;
 }
 
-internal static class MltNative
+[InlineArray(MltNative.MaxErrorMsgLen + 1)]
+internal struct MltErrorMessage
 {
-    private const string _DLL = "MLToolingCwrapper";
+    private byte _element0;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MLTerror
+{
+    public MLTErrorType Type;
+    public MltErrorMessage Message;
+
+    internal readonly bool IsOk => Type == MLTErrorType.Ok;
+
+    internal readonly string GetMessage()
+    {
+        ReadOnlySpan<byte> raw = Message;
+        int nullIndex = raw.IndexOf((byte)0);
+        var bytes = nullIndex >= 0 ? raw[..nullIndex] : raw;
+        
+        return Encoding.UTF8.GetString(bytes);
+    }
+}
+
+internal static partial class MltNative
+{
+    internal const int MaxErrorMsgLen = 50;
+    internal const int MaxDims = 6;
+
+    private const string DllName = "MLToolingC";
     private const CallingConvention _conv = CallingConvention.Cdecl;
 
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorFrom(MLTshape shape, out TensorHandle tensor);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFCreate(
-            size_t rows,
-            size_t cols,
-            out MatrixFHandle matrix
-    );
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorFromBuff(ReadOnlySpan<float> buf, size_t len, MLTshape shape, out TensorHandle tensor);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFCreateFromBuff(
-        size_t rows,
-        size_t cols,
-        IntPtr buff,
-        size_t elemCount,
-        out MatrixFHandle matrix
-    );
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFDestroy(IntPtr mat);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial void mltTensorDestroy(ptr tensor);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFSet(
-            MatrixFHandle mat,
-            size_t row,
-            size_t col,
-            float newVal
-    );
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorCopy(TensorHandle src, out TensorHandle tensor);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFGet(
-            MatrixFHandle mat,
-            size_t row,
-            size_t col,
-            out float val
-    );
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorShape(TensorHandle tensor, out MLTshape shape);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFRowCount(MatrixFHandle mat, out size_t rowCount);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorGet(TensorHandle tensor, MLTshape shape, out float val);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFColCount(MatrixFHandle mat, out size_t colCount);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorSet(TensorHandle tensor, MLTshape shape, float val);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int  mltFwMatrixFAdd(
-        MatrixFHandle a,
-        MatrixFHandle b,
-        out MatrixFHandle mat
-    );
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorTranspose(TensorHandle src, out TensorHandle tensor);
 
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFAddInPlace(
-        MatrixFHandle a,
-        MatrixFHandle b
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFMultiply(
-        MatrixFHandle a,
-        MatrixFHandle b,
-        out MatrixFHandle mat
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFClone(
-        MatrixFHandle mat,
-        out MatrixFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFCopy(
-        MatrixFHandle mat,
-        out MatrixFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltFwMatrixFSubmatrix(
-        MatrixFHandle mat,
-        size_t startRow,
-        size_t startCol,
-        size_t rowCount,
-        size_t colCount,
-        out MatrixFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFCreate(
-        size_t size,
-        out VectorFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFCreateFromBuff(
-        size_t size,
-        IntPtr buff,
-        out VectorFHandle vec
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFDestroy(IntPtr vec);
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFSet(
-        VectorFHandle vec,
-        size_t pos,
-        float newVal
-    );
-
-    [DllImport(_DLL, CallingConvention  =_conv)]
-    internal static extern int mltVectorFGet(
-        VectorFHandle vec,
-        size_t pos,
-        out float val
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFLength(
-        VectorFHandle vec,
-        out size_t length
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFIsTransposed(
-        VectorFHandle vec,
-        out int isTransposed
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFTranspose(VectorFHandle vec);
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFAdd(
-            VectorFHandle a,
-            VectorFHandle b,
-            out VectorFHandle c
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFAddInPlace(
-            VectorFHandle a,
-            VectorFHandle b
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFSubtract(
-            VectorFHandle a,
-            VectorFHandle b,
-            out VectorFHandle c
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFSubtractInPlace(
-            VectorFHandle a,
-            VectorFHandle b
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFMulScalar(
-            VectorFHandle vec,
-            float scalar,
-            out VectorFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFMulScalarInPlace(
-            VectorFHandle vec,
-            float scalar
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFDot(
-            VectorFHandle a,
-            VectorFHandle b,
-            out float result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFHadamard(
-            VectorFHandle a,
-            VectorFHandle b,
-            out VectorFHandle c
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFCopy(
-            VectorFHandle vec,
-            out VectorFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFClone(
-            VectorFHandle vec,
-            out VectorFHandle result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltVectorFSubvector(
-            VectorFHandle vec,
-            size_t pos,
-            size_t length,
-            out VectorFHandle subvec
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltLinearRegressionCreate(
-            out LinearRegressionHandle model
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltLinearRegressionDestroy(
-            IntPtr model
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltLinearRegressionPredict(
-            LinearRegressionHandle model,
-            VectorFHandle features,
-            out float result
-    );
-
-    [DllImport(_DLL, CallingConvention = _conv)]
-    internal static extern int mltLinearRegressionFit(
-            LinearRegressionHandle model,
-            MatrixFHandle x,
-            VectorFHandle y,
-            float learningRate,
-            size_t epochs
-    );
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorMatmul(TensorHandle a, TensorHandle b, out TensorHandle c);
 }

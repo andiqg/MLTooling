@@ -130,7 +130,7 @@ add_executable(tests
 
 target_link_libraries(tests PRIVATE MLTooling MLTooling_internal)
 
-add_subdirectory(cwrapper)
+add_subdirectory(bindings/c)
 
 #install(TARGETS MLToolingCapi DESTINATION lib)
 

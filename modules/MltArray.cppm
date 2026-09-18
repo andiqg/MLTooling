@@ -183,6 +183,62 @@ export namespace mlt::compute::core
             return *(reinterpret_cast<T*>(data->data) + pos);
         }
 
+        template <typename T = default_dType>
+        mlt::core::Result<T*> at(std::span<const size_t> indices) noexcept
+        {
+            if (DTypeMapping<T>::value != dType)
+                return std::unexpected(mlt::core::MltError::makeTypeMismatch(
+                            toString(DTypeMapping<T>::value),
+                            toString(dType)
+                ));
+
+            const size_t rank = shape.size();
+            const size_t idxLen = indices.size();
+
+            if (idxLen != rank)
+                return std::unexpected(mlt::core::MltError::makeRankMismatch(rank, idxLen));
+
+            size_t pos = offset;
+
+            for (size_t i = 0; i < idxLen; ++i)
+            {
+                if (indices[i] >= shape[i])
+                    return std::unexpected(mlt::core::MltError::makeOutOfBounds(indices[i], shape[i]));
+
+                pos += indices[i] * strides[i];
+            }
+
+           return reinterpret_cast<T*>(data->data) + pos;
+        }
+
+        template <typename T = default_dType>
+        mlt::core::Result<T> at(std::span<const size_t> indices) const noexcept
+        {
+            if (DTypeMapping<T>::value != dType)
+                return std::unexpected(mlt::core::MltError::makeTypeMismatch(
+                            toString(DTypeMapping<T>::value),
+                            toString(dType)
+                ));
+
+            const size_t rank = shape.size();
+            const size_t idxLen = indices.size();
+
+            if (idxLen != rank)
+                return std::unexpected(mlt::core::MltError::makeRankMismatch(rank, idxLen));
+
+            size_t pos = offset;
+
+            for (size_t i = 0; i < idxLen; ++i)
+            {
+                if (indices[i] >= shape[i])
+                    return std::unexpected(mlt::core::MltError::makeOutOfBounds(indices[i], shape[i]));
+
+                pos += indices[i] * strides[i];
+            }
+
+            return *(reinterpret_cast<T*>(data->data) + pos);
+        }
+
         bool isContiguous() const;
         bool isTransposed() const { return shape[shape.size() - 1] == 1; };
         

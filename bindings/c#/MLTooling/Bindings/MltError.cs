@@ -2,23 +2,23 @@ namespace MLTooling.Bindings;
 
 internal static class MltError
 {
-    public static void ThrowIfError(MltStatus status)
+    public static void ThrowIfError(in MLTerror err)
     {
-        if (status == MltStatus.SUCCESS)
+        if (err.IsOk)
             return;
 
-        throw CreateException(status);
-    }
+        throw new MltException(err.Type, err.GetMessage());
 
-    private static Exception CreateException(MltStatus status)
+    }
+}
+
+public sealed class MltException : Exception
+{
+    internal MLTErrorType ErrorType { get; }
+
+    internal MltException(MLTErrorType errorType, string message)
+        : base(message)
     {
-        return status switch
-        {
-            MltStatus.NULL_PTR => new NullReferenceException("Native NULL pointer"),
-            MltStatus.OUT_OF_BOUNDS => new IndexOutOfRangeException(""),
-            MltStatus.ALLOCATION_FAILED => new OutOfMemoryException(),
-            MltStatus.SHAPE_MISSMATCH => new InvalidOperationException("Shape missmatch"),
-            _ => new InvalidOperationException($"Unknown native error: {status}")
-        };
+        ErrorType = errorType;
     }
 }
