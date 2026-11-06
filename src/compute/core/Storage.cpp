@@ -23,7 +23,7 @@ Storage::~Storage()
    ::operator delete(data, std::align_val_t(alignment), std::nothrow); 
 }
 
-std::expected<Ref<Storage>, MltError> Storage::alloc(const size_t bytes, const size_t alignment)
+Result<Ref<Storage>> Storage::alloc(const size_t bytes, const size_t alignment)
 {
     if (alignment == 0 || (alignment & (alignment-1)) != 0)
     {
@@ -52,7 +52,7 @@ std::expected<Ref<Storage>, MltError> Storage::alloc(const size_t bytes, const s
     return Ref<Storage>(storage);
 }
 
-std::expected<Ref<Storage>, MltError> Storage::from(std::span<const std::byte> buf, const size_t alignment)
+Result<Ref<Storage>> Storage::from(std::span<const std::byte> buf, const size_t alignment)
 {
     if (alignment == 0 || (alignment & (alignment-1)) != 0)
     {
@@ -81,5 +81,27 @@ std::expected<Ref<Storage>, MltError> Storage::from(std::span<const std::byte> b
     }
     
     return Ref<Storage>(storage);
+}
+
+Result<Ref<Storage>> Storage::clone() const noexcept
+{
+    std::byte* clonedData = static_cast<std::byte*>(
+        ::operator new(size, std::align_val_t(alignment), std::nothrow)
+    );
+
+    if (!data)
+        return std::unexpected(MltError::make(MltErrorType::OutOfMemory));
+    
+    std::memcpy(clonedData, data, size);
+
+    Storage* clonedStorage = new (std::nothrow) Storage(clonedData, size, alignment);
+    
+    if (!clonedStorage)
+    {
+        ::operator delete(clonedData, std::align_val_t(alignment), std::nothrow);
+        return std::unexpected(MltError::make(MltErrorType::OutOfMemory));
+    }
+
+    return Ref<Storage>(clonedStorage);
 }
 

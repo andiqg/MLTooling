@@ -2,7 +2,6 @@ module;
 
 #include <mlt/internal/compute/core/RefCount.hpp>
 #include <cstddef>
-#include <expected>
 #include <span>
 
 export module mlt.internal.core.storage;
@@ -23,8 +22,10 @@ export namespace mlt::compute::core
         Storage& operator=(const Storage&) = delete;
         ~Storage();
 
-        static std::expected<Ref<Storage>, mlt::core::MltError> alloc(const size_t bytes, const size_t alignment = DEFAULT_ALIGNMENT);
-        static std::expected<Ref<Storage>, mlt::core::MltError> from(std::span<const std::byte> buf, const size_t alignment = DEFAULT_ALIGNMENT);
+        static mlt::core::Result<Ref<Storage>> alloc(const size_t bytes, const size_t alignment = DEFAULT_ALIGNMENT);
+        static mlt::core::Result<Ref<Storage>> from(std::span<const std::byte> buf, const size_t alignment = DEFAULT_ALIGNMENT);
+        mlt::core::Result<Ref<Storage>> clone() const noexcept;
+        
     
         private:
         Storage(std::byte* data, size_t size, size_t alignment = DEFAULT_ALIGNMENT);

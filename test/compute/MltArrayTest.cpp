@@ -180,8 +180,6 @@ static void MltArrayIsContigousTest()
     assertEq(false, transposed.isContiguous(), "Contigous doesnt work.");
 }
 
-
-
 REGISTER_TEST(MltArrayFromTest)
 REGISTER_TEST(MltArrayOpTest);
 REGISTER_TEST(MltArrayAtTest)

@@ -18,7 +18,8 @@ export namespace mlt::core
         TypeMismatch,
         RankMismatch,
         ShapeMismatch,
-        InvalidArgument
+        InvalidArgument,
+        InvalidBroadcastDim
     };
 
     constexpr std::string_view errorTemplate(MltErrorType type)
@@ -31,7 +32,8 @@ export namespace mlt::core
             case MltErrorType::TypeMismatch:            return "TypeMismatch: {}";
             case MltErrorType::RankMismatch:            return "RankMismatch: {}";
             case MltErrorType::ShapeMismatch:           return "ShapeMismatch: {}";
-            case MltErrorType::InvalidArgument:          return "InvalidArgument: {}";
+            case MltErrorType::InvalidArgument:         return "InvalidArgument: {}";
+            case MltErrorType::InvalidBroadcastDim:     return "Invalid broadcast dimension {}";
         }
     }
 
@@ -82,6 +84,11 @@ export namespace mlt::core
         static MltError makeInvalidArgument()
         {
             return make(MltErrorType::InvalidArgument);
+        }
+
+        static MltError makeInvalidBroadcastDim()
+        {
+            return make(MltErrorType::InvalidBroadcastDim);
         }
     };
 

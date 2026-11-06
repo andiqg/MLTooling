@@ -4,9 +4,10 @@ module;
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
 #include <span>
-
+#include <numeric>
 
 export module mlt.internal.compute.core.sizearray;
 
@@ -77,6 +78,23 @@ export namespace mlt::compute::core
         const size_t* getData() const noexcept { return mData.data(); }
 
         std::span<const size_t> asSpan() const noexcept { return std::span(mData.data(), mLen); }
+
+        bool equals(const SizeArray& other) const
+        {
+            if (mLen != other.mLen)
+                return  false;
+
+            for (size_t i = 0; i < mLen; i++)
+                if (mData[i] != mData[i])
+                    return false;
+
+            return true;
+        }
+
+        size_t elemCount() const
+        {
+            return std::accumulate(mData.begin(), mData.begin() + mLen, size_t{1}, std::multiplies{}); 
+        }
     };
     
     using DefaultSizeArray = SizeArray<>;

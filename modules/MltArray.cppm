@@ -75,7 +75,7 @@ export namespace mlt::compute::core
         }
  
         // shape nxnxRowxCol
-        static std::expected<MltArray, mlt::core::MltError> from(
+        static mlt::core::Result<MltArray> from(
             DefaultSizeArray shape,
             DType dType = DEFAULT_DTYPE,
             DimType dimType = DEFAULT_DIM_TYPE
@@ -88,6 +88,14 @@ export namespace mlt::compute::core
             DimType dimType = DEFAULT_DIM_TYPE
         ) noexcept
         {
+            const size_t count = shape.elemCount();
+ 
+            if (count == 0)
+                return std::unexpected(mlt::core::MltError::makeInvalidArgument());
+
+            if (count != data.size())
+                return std::unexpected(mlt::core::MltError::makeShapeMismatch());
+
             DefaultSizeArray strides = DefaultSizeArray(shape.size());
 
             MltArray::computeStrides(strides, shape, 1, dimType);
@@ -111,9 +119,11 @@ export namespace mlt::compute::core
 
         MltArray transpose() const noexcept;
 
+        mlt::core::Result<MltArray> clone() const noexcept;
+
         template<typename T = default_dType, typename... Indices>
         requires (std::is_convertible_v<Indices, size_t>&& ...)
-        std::expected<T*, mlt::core::MltError> at(Indices... idx) noexcept
+        mlt::core::Result<T*> at(Indices... idx) noexcept
         {
             if (DTypeMapping<T>::value != dType)
                 return std::unexpected(mlt::core::MltError::makeTypeMismatch(
@@ -149,7 +159,7 @@ export namespace mlt::compute::core
         
         template <typename T = default_dType, typename... Indices>
         requires(std::is_convertible_v<Indices, size_t> && ...)
-        std::expected<T, mlt::core::MltError> at(Indices... idx) const noexcept
+        mlt::core::Result<T> at(Indices... idx) const noexcept
         {
             if (DTypeMapping<T>::value != dType)
                 return std::unexpected(mlt::core::MltError::makeTypeMismatch(
@@ -241,6 +251,9 @@ export namespace mlt::compute::core
 
         bool isContiguous() const;
         bool isTransposed() const { return shape[shape.size() - 1] == 1; };
+        bool isScalar() const { return shape.size() == 1 && shape[0] == 1; };
+        bool isVector() const { return shape.size() == 1 && shape[0] > 1; }
+        bool isMatrix() const { return shape.size() == 2; }
         
         template <typename T = default_dType>
         mlt::core::Result<const T*> asPtr() const

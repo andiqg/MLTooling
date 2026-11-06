@@ -23,7 +23,9 @@ set(MLTOOLING_SOURCES
     "src/math/kernels/matrixkernels.cpp"
     "src/compute/core/Storage.cpp"
     "src/compute/core/MltArray.cpp"
-    "src/compute/ops/ops.cpp"
+    "src/compute/Operations.cpp"
+    "src/compute/Runtime.cpp"
+    "src/compute/Kernels.cpp"
 )
 
 add_library(MLTooling ${MLTOOLING_SOURCES})
@@ -37,6 +39,8 @@ target_sources(MLTooling
             "modules/SizeArray.cppm"
             "modules/Operations.cppm"
             "modules/MltArray.cppm"
+            "modules/Runtime.cppm"
+            "modules/Kernels.cppm"
 )
 
 if(MLTOOLING_IDE_FILES)
