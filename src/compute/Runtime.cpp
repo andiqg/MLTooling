@@ -2,6 +2,7 @@ module;
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 #include <mlt/macros.hpp>
 #include <mlt/internal/compute/core/DType.hpp>

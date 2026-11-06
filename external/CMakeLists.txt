@@ -20,3 +20,8 @@ target_link_libraries(MLTooling_dependencies
         openblas
 )
 
+target_include_directories(MLTooling_dependencies
+    SYSTEM INTERFACE
+        ${CMAKE_BINARY_DIR}/generated
+        ${CMAKE_BINARY_DIR}
+)
