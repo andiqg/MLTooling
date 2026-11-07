@@ -50,6 +50,7 @@ namespace mlt::compute
         mlt::core::Result<float*> at(std::span<const size_t> indices) noexcept;
         mlt::core::Result<float> at(std::span<const size_t> indices) const noexcept;
         std::vector<size_t> shape() const;
+        mlt::core::Result<Tensor> clone() const;
 
         mlt::core::Result<Tensor> matmul(const Tensor& other) const noexcept;
         mlt::core::Result<Tensor> multiply(const Tensor& other) const noexcept;

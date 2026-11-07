@@ -363,9 +363,10 @@ cleanup:
     mltTensorDestroy(t);
 }
 
-void tensorCopyIsIndependentTest(void)
+/* Copy is a view: both handles share one buffer (internal refcount). */
+void tensorCopySharesBufferTest(void)
 {
-    const char* testName = "tensorCopyIsIndependentTest";
+    const char* testName = "tensorCopySharesBufferTest";
     MLTtensor* t = NULL;
     MLTtensor* c = NULL;
     float v = 0.f;
@@ -376,17 +377,126 @@ void tensorCopyIsIndependentTest(void)
     err = mltTensorCopy(t, &c);
     ASSERT_STATUS_OK(testName, err.type, err.message);
 
-    if (checkValues(testName, c, A23, 6, "Copy has wrong value.")) goto cleanup;
+    if (checkValues(testName, c, A23, 6, "View has wrong value.")) goto cleanup;
 
-    /* modifying the copy must not change the original */
+    /* writing through the view must be visible in the original */
     err = mltTensorSet(c, shape2(0, 0), 100.f);
     ASSERT_STATUS_OK(testName, err.type, err.message);
     err = mltTensorGet(t, shape2(0, 0), &v);
     ASSERT_STATUS_OK(testName, err.type, err.message);
-    ASSERT_EQ_FLOAT(testName, v, 1.f, "Original was modified through copy.");
+    ASSERT_EQ_FLOAT(testName, v, 100.f, "Write through view not visible in original.");
 
 cleanup:
     mltTensorDestroy(t);
+    mltTensorDestroy(c);
+}
+
+/* The buffer must stay alive while any view exists (refcount). */
+void tensorCopyOutlivesOriginalTest(void)
+{
+    const char* testName = "tensorCopyOutlivesOriginalTest";
+    MLTtensor* t = NULL;
+    MLTtensor* c = NULL;
+    MLTerror err;
+
+    err = mltTensorFromBuff(A23, 6, shape2(2, 3), &t);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorCopy(t, &c);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+
+    mltTensorDestroy(t);
+    t = NULL;
+
+    /* original is gone, the view must still read valid data */
+    checkValues(testName, c, A23, 6, "View invalid after original was destroyed.");
+
+cleanup:
+    mltTensorDestroy(t);
+    mltTensorDestroy(c);
+}
+
+/* Clone is a deep copy: writes must not leak in either direction. */
+void tensorCloneIsIndependentTest(void)
+{
+    const char* testName = "tensorCloneIsIndependentTest";
+    MLTtensor* t = NULL;
+    MLTtensor* c = NULL;
+    float v = 0.f;
+    MLTerror err;
+
+    err = mltTensorFromBuff(A23, 6, shape2(2, 3), &t);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorClone(t, &c);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+
+    if (checkShape(testName, c, shape2(2, 3))) goto cleanup;
+    if (checkValues(testName, c, A23, 6, "Clone has wrong value.")) goto cleanup;
+
+    /* write to the clone, original must stay untouched */
+    err = mltTensorSet(c, shape2(0, 0), 100.f);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorGet(t, shape2(0, 0), &v);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    ASSERT_EQ_FLOAT(testName, v, 1.f, "Original was modified through clone.");
+
+    /* write to the original, clone must stay untouched */
+    err = mltTensorSet(t, shape2(1, 2), 200.f);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorGet(c, shape2(1, 2), &v);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    ASSERT_EQ_FLOAT(testName, v, 6.f, "Clone was modified through original.");
+
+cleanup:
+    mltTensorDestroy(t);
+    mltTensorDestroy(c);
+}
+
+/* Clone must stay valid after the original is destroyed. */
+void tensorCloneOutlivesOriginalTest(void)
+{
+    const char* testName = "tensorCloneOutlivesOriginalTest";
+    MLTtensor* t = NULL;
+    MLTtensor* c = NULL;
+    MLTerror err;
+
+    err = mltTensorFromBuff(A23, 6, shape2(2, 3), &t);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorClone(t, &c);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+
+    mltTensorDestroy(t);
+    t = NULL;
+
+    checkValues(testName, c, A23, 6, "Clone invalid after original was destroyed.");
+
+cleanup:
+    mltTensorDestroy(t);
+    mltTensorDestroy(c);
+}
+
+/* Clone of a transposed view: shape and logical values must be preserved. */
+void tensorCloneTransposedTest(void)
+{
+    const char* testName = "tensorCloneTransposedTest";
+    MLTtensor* t = NULL;
+    MLTtensor* tr = NULL;
+    MLTtensor* c = NULL;
+    const float exp[] = {1, 4, 2, 5, 3, 6};   /* (3,2) */
+    MLTerror err;
+
+    err = mltTensorFromBuff(A23, 6, shape2(2, 3), &t);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorTranspose(t, &tr);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+    err = mltTensorClone(tr, &c);
+    ASSERT_STATUS_OK(testName, err.type, err.message);
+
+    if (checkShape(testName, c, shape2(3, 2))) goto cleanup;
+    checkValues(testName, c, exp, 6, "Cloned transposed value doesnt match.");
+
+cleanup:
+    mltTensorDestroy(t);
+    mltTensorDestroy(tr);
     mltTensorDestroy(c);
 }
 
@@ -438,7 +548,11 @@ int main(void)
     tensorGetSetTest();
     tensorGetOutOfBoundsTest();
     tensorFromBuffWrongLengthTest();
-    tensorCopyIsIndependentTest();
+    tensorCopySharesBufferTest();
+    tensorCopyOutlivesOriginalTest();
+    tensorCloneIsIndependentTest();
+    tensorCloneOutlivesOriginalTest();
+    tensorCloneTransposedTest();
     tensorTransposeTest();
 
     return 0;

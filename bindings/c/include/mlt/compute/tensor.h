@@ -24,7 +24,7 @@ MLTOOLING_C MLTerror mltTensorFromBuff(const float* buf, size_t len, MLTshape sh
 MLTOOLING_C void mltTensorDestroy(MLTtensor* tensor);
 
 MLTOOLING_C MLTerror mltTensorCopy(const MLTtensor* tensor, MLTtensor** out);
-// MLTOOLING_C MLTerror mltTensorClone(const MLTtensor* tensor, MLTtensor** out);
+MLTOOLING_C MLTerror mltTensorClone(const MLTtensor* tensor, MLTtensor** out);
 MLTOOLING_C MLTerror mltTensorShape(const MLTtensor* tensor, MLTshape* shape);
 MLTOOLING_C MLTerror mltTensorGet(const MLTtensor* tensor, MLTshape shape, float* out);
 MLTOOLING_C MLTerror mltTensorSet(MLTtensor* tensor, MLTshape shape, float val);

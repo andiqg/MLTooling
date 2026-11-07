@@ -109,6 +109,25 @@ extern "C"
         }
     }
 
+    MLTerror mltTensorClone(const MLTtensor *tensor, MLTtensor **out)
+    {
+        MLT_CHECK_NULL_PTR(tensor);
+        MLT_CHECK_NULL_PTR(out);
+
+        try
+        {
+            Result<Tensor> cloned = tensor->implTensor.clone();
+            MLT_CHECK_ERR(cloned);
+            *out = new MLTtensor(MLT_MOVE_VALUE(cloned));
+
+            return mltMakeErrorNone();
+        }
+        catch (...)
+        {
+            return mltMakeErrorInternal();
+        }
+    }
+
     MLTerror mltTensorShape(const MLTtensor *tensor, MLTshape *shape)
     {
         MLT_CHECK_NULL_PTR(tensor);

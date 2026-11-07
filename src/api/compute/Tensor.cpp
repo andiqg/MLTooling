@@ -64,6 +64,12 @@ std::vector<size_t> Tensor::shape() const
     return std::vector(shapeSpan.begin(), shapeSpan.end());
 }
 
+Result<Tensor> Tensor::clone() const
+{
+    MLT_TRY(clonedArr, mArray.clone());
+    return Tensor(std::move(clonedArr));
+}
+
 Result<Tensor> Tensor::matmul(const Tensor& other) const noexcept
 {
     MLT_TRY(arr, mlt::compute::ops::matmul(mArray, other.mArray));
