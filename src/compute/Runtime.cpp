@@ -58,7 +58,7 @@ Result<MltArray> hardamardBroadcastAligned(const MltArray& host, const MltArray&
     for (size_t i = 0; i < begin; ++i)
         outer *= host.shape[i];
 
-    for (size_t i = 0; i < end; ++i)
+    for (size_t i = end; i < host.shape.size(); ++i)
         inner *= host.shape[i];
 
     const size_t mid = op.shape.elemCount();
