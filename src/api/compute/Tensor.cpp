@@ -70,8 +70,19 @@ Result<Tensor> Tensor::matmul(const Tensor& other) const noexcept
     return Tensor(std::move(arr));
 }
 
+Resutl<Tensor> Tensor::multiply(const Tensor& other) const noexcept
+{
+    MLT_TRY(arr, mlt::compute::ops::multiply(mArray, other.mArray));
+    return Tensor(std::move(arr));
+}
+
 // ==== Free functions ===
 Result<Tensor> matmul(const Tensor& a, const Tensor& b) noexcept
 {
     return a.matmul(b);
+}
+
+Result<Tensor> multiply(const Tensor& a, const Tensor& b) noexcept
+{
+    return a.multiply(b);
 }
