@@ -31,6 +31,9 @@ MLTOOLING_C MLTerror mltTensorSet(MLTtensor* tensor, MLTshape shape, float val);
 MLTOOLING_C MLTerror mltTensorTranspose(const MLTtensor* tensor, MLTtensor** out);
 
 MLTOOLING_C MLTerror mltTensorMatmul(const MLTtensor* a, const MLTtensor* b, MLTtensor** out);
+MLTOOLING_C MLTerror mltTensorMultiply(const MLTtensor* a, const MLTtensor* b, MLTtensor** out);
+MLTOOLING_C MLTerror mltTensorAdd(const MLTtensor* a, const MLTtensor* b, MLTtensor** out);
+MLTOOLING_C MLTerror mltTensorSub(const MLTtensor* a, const MLTtensor* b, MLTtensor** out);
 
 #ifdef __cplusplus
 }
