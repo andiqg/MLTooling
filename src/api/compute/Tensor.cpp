@@ -70,9 +70,9 @@ Result<Tensor> Tensor::matmul(const Tensor& other) const noexcept
     return Tensor(std::move(arr));
 }
 
-Resutl<Tensor> Tensor::multiply(const Tensor& other) const noexcept
+Result<Tensor> Tensor::multiply(const Tensor& other) const noexcept
 {
-    MLT_TRY(arr, mlt::compute::ops::multiply(mArray, other.mArray));
+    MLT_TRY(arr, mlt::compute::ops::multiply(mArray, other.mArray, 0));
     return Tensor(std::move(arr));
 }
 

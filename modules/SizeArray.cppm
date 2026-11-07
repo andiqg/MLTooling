@@ -85,7 +85,7 @@ export namespace mlt::compute::core
                 return  false;
 
             for (size_t i = 0; i < mLen; i++)
-                if (mData[i] != mData[i])
+                if (mData[i] != other.mData[i])
                     return false;
 
             return true;

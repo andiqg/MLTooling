@@ -52,7 +52,7 @@ namespace mlt::compute
         std::vector<size_t> shape() const;
 
         mlt::core::Result<Tensor> matmul(const Tensor& other) const noexcept;
-        mtl::core::Result<Tensor> multiply(const Tensor& other) const noexcept;
+        mlt::core::Result<Tensor> multiply(const Tensor& other) const noexcept;
     };
 
     mlt::core::Result<Tensor> matmul(const Tensor& a, const Tensor& b) noexcept;
