@@ -18,24 +18,48 @@ using namespace mlt::core;
 using namespace mlt::compute::ops;
 using namespace mlt::compute::core;
 
-Result<MltArray> multiplyMatrixVectorKernel(const MltArray& matrix, const MltArray& vector)
+inline Result<void> validateBinaryOperations(const MltArray& a, const MltArray& b, size_t dim) noexcept
 {
-    // cblas_sgemv(const CBLAS_LAYOUT layout, const CBLAS_TRANSPOSE TransA, const int32_t M, const int32_t N, const float alpha, const float *A, const int32_t lda, const float *X, const int32_t incX, const float beta, float *Y, const int32_t incY);
-    // cblas_dgemv(CBLAS_LAYOUT layout, CBLAS_TRANSPOSE TransA, const int32_t M, const int32_t N, const double alpha, const double *A, const int32_t lda, const double *X, const int32_t incX, const double beta, double *Y, const int32_t incY);
+    if (a.isScalar() || b.isScalar())
+        return {};
+
+    const bool aIsHost = b.isScalar() ? true : a.isScalar() ? false : a.shape.size() >= b.shape.size();
+    const MltArray& host = aIsHost ? a : b;
+    const MltArray& op = aIsHost ? b : a;
+
+    if (dim + op.shape.size() > host.shape.size())
+        return std::unexpected(MltError::makeInvalidBroadcastDim());
+
+    const size_t begin = host.shape.size() - dim - op.shape.size();
+
+    for (size_t j = 0; j < op.shape.size(); ++j)
+    {
+        if (op.shape[j] != host.shape[begin + j])
+            return std::unexpected(MltError::makeShapeMismatch());
+    }
+
+    return {};
+}
+
+inline Result<void> validateType(const MltArray& a, const MltArray& b) noexcept
+{
+    if (a.dType != b.dType)
+        return std::unexpected(MltError::makeTypeMismatch(toString(a.dType), toString(b.dType)));
+
+    return {};
 }
 
 Result<MltArray> mlt::compute::ops::multiply(const MltArray& a, const MltArray& b, const size_t dim) noexcept
 {
-    if (a.dType != b.dType)
-        return std::unexpected(MltError::makeTypeMismatch(toString(a.dType), toString(b.dType)));
+    MLT_RETURN_IF_ERROR(validateType(a, b));
+    MLT_RETURN_IF_ERROR(validateBinaryOperations(a, b, dim));
 
     return mlt::compute::runtime::multiply(a, b, dim);
 }
 
 Result<MltArray> mlt::compute::ops::matmul(const MltArray& a, const MltArray& b) noexcept
 {
-    if (a.dType != b.dType)
-        return std::unexpected(MltError::makeTypeMismatch(toString(a.dType), toString(b.dType)));
+    MLT_RETURN_IF_ERROR(validateType(a, b));
 
     // if (a.shape.size() < 2 || b.shape.size() < 2)
     //     return std::unexpected(MltError::makeShapeMismatch());
@@ -60,18 +84,19 @@ Result<MltArray> mlt::compute::ops::matmul(const MltArray& a, const MltArray& b)
     return mlt::compute::runtime::matmul(a, b);
 }
 
-Result<MltArray> mlt::compute::ops::add(const MltArray& a, const MltArray& b) noexcept
+Result<MltArray> mlt::compute::ops::add(const MltArray& a, const MltArray& b, size_t dim) noexcept
 {
-    if (a.dType != b.dType)
-        return std::unexpected(MltError::makeTypeMismatch(toString(a.dType), toString(b.dType)));
+    MLT_RETURN_IF_ERROR(validateType(a, b));
+    MLT_RETURN_IF_ERROR(validateBinaryOperations(a, b, dim));
 
-    if (a.shape.size() != b.shape.size())
-        return std::unexpected(MltError::makeShapeMismatch());
+    return mlt::compute::runtime::add(a, b, dim);
+}
 
-    if (!a.shape.equals(b.shape))
-        return std::unexpected(MltError::makeShapeMismatch());
+Result<MltArray> mlt::compute::ops::sub(const MltArray& a, const MltArray& b, size_t dim) noexcept
+{
+    MLT_RETURN_IF_ERROR(validateType(a, b));
+    MLT_RETURN_IF_ERROR(validateBinaryOperations(a, b, dim));
 
-
-    return MltArray::from(DefaultSizeArray({2}));
+    return mlt::compute::runtime::sub(a, b, dim);
 }
 

@@ -47,20 +47,37 @@ export namespace mlt::compute::kernels
         bool bTransposed
     ) noexcept;
     
-    template <typename T>
-    void hardamardAligned(T* x, const T* p, size_t outer, size_t mid, size_t inner)
+    enum class BinaryOp
+    {
+        Add,
+        Sub,
+        Mul
+    };
+
+    template <BinaryOp Op, typename T>
+    constexpr T apply(T x, T y) noexcept
+    {
+        if constexpr (Op == BinaryOp::Add) return x + y;
+        if constexpr (Op == BinaryOp::Sub) return x - y;
+        if constexpr (Op == BinaryOp::Mul) return x * y;
+    }
+
+    template <BinaryOp Op, typename T>
+    void broadcastInplace(T* x, const T* p, bool hostIsLhs, size_t outer, size_t mid, size_t inner) noexcept
     {
         for (size_t o = 0; o < outer; ++o)
         {
-            T* block = x + o * mid * inner;
-
             for (size_t m = 0; m < mid; ++m)
             {
                 const T s = p[m];
-                T* row = block + m * inner;
-
-                for (size_t i = 0; i < inner; ++i)
-                    row[i] *= s;
+                T* row = x + (o * mid + m) * inner;
+                    
+                if (hostIsLhs)
+                    for (size_t i = 0; i < inner; ++i)
+                        row[i] = apply<Op>(row[i], s);
+                else
+                    for (size_t i = 0; i < inner; ++i)
+                        row[i] = apply<Op>(s, row[i]);
             }
         }
     }

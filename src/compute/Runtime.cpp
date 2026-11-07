@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -19,7 +20,7 @@ using namespace mlt::compute::core;
 
 // ===== Private Functions =====
 
-Result<MltArray> Scale(const MltArray& a, const MltArray& scalar) noexcept
+Result<MltArray> dispatchScale(const MltArray& a, const MltArray& scalar) noexcept
 {
     constexpr int32_t steps = 1;
     const int32_t N = static_cast<int32_t>(a.shape.elemCount());
@@ -50,37 +51,47 @@ Result<MltArray> Scale(const MltArray& a, const MltArray& scalar) noexcept
     }
 }
 
-Result<MltArray> hardamardBroadcastAligned(const MltArray& host, const MltArray& op, size_t begin, size_t end) noexcept
+template <mlt::compute::kernels::BinaryOp Op>
+Result<MltArray> dispatchBinaryBroadcast(const MltArray& a, const MltArray& b, size_t dim) noexcept
 {
+    const bool aIsHost = b.isScalar() ? true : a.isScalar() ? false : a.shape.size() >= b.shape.size();
+    const MltArray& host = aIsHost ? a : b;
+    const MltArray& op = aIsHost ? b : a;
+
     size_t outer = 1;
-    size_t inner = 1;
+    size_t mid = 1;
+    size_t inner = host.shape.elemCount();
 
-    for (size_t i = 0; i < begin; ++i)
-        outer *= host.shape[i];
+    if (!op.isScalar())
+    {
+        const size_t end = host.shape.size() - dim;
+        const size_t begin = end - op.shape.size();
 
-    for (size_t i = end; i < host.shape.size(); ++i)
-        inner *= host.shape[i];
+        inner = 1;
 
-    const size_t mid = op.shape.elemCount();
+        for (size_t i = 0; i < begin; ++i)
+            outer *= host.shape[i];
+
+       for (size_t i = end; i < host.shape.size(); ++i)
+            inner *= host.shape[i];
+
+        mid = op.shape.elemCount();
+    }
+    
+    assert(outer * mid * inner == host.shape.elemCount());
 
     MLT_TRY(out, host.clone());
 
-    switch (host.dType) 
+    switch (a.dType) 
     {
         case DType::FLOAT32:
         {
-            mlt::compute::kernels::hardamardAligned(out.asPtrUnchecked<float>(),
-                                                    op.asPtrUnchecked<float>(),
-                                                    outer, mid, inner);
-
+            mlt::compute::kernels::broadcastInplace<Op>(out.asPtrUnchecked<float>(), op.asPtrUnchecked<float>(), aIsHost, outer, mid, inner);
             return out;
         }
         case DType::FLOAT64:
         {
-            mlt::compute::kernels::hardamardAligned(out.asPtrUnchecked<double>(),
-                                                    op.asPtrUnchecked<double>(),
-                                                    outer, mid, inner);
-
+            mlt::compute::kernels::broadcastInplace<Op>(out.asPtrUnchecked<double>(), op.asPtrUnchecked<double>(), aIsHost, outer, mid, inner);
             return out;
         }
     }
@@ -91,27 +102,22 @@ Result<MltArray> hardamardBroadcastAligned(const MltArray& host, const MltArray&
 Result<MltArray> mlt::compute::runtime::multiply(const MltArray& a, const MltArray& b, size_t dim) noexcept
 {
     if (a.isScalar())
-        return Scale(b, a);
+        return dispatchScale(b, a);
     
     if (b.isScalar())
-        return Scale(a, b);
+        return dispatchScale(a, b);
 
-    const bool aIsHost = a.shape.size() >= b.shape.size();
-    const MltArray& host = aIsHost ? a : b;
-    const MltArray& op = aIsHost ? b : a;
+    return dispatchBinaryBroadcast<mlt::compute::kernels::BinaryOp::Mul>(a, b, dim);
+}
 
-    if (dim + op.shape.size() > host.shape.size())
-        return std::unexpected(MltError::makeInvalidBroadcastDim());
+Result<MltArray> mlt::compute::runtime::add(const MltArray& a, const MltArray& b, size_t dim) noexcept
+{
+    return dispatchBinaryBroadcast<mlt::compute::kernels::BinaryOp::Add>(a, b, dim);
+}
 
-    const size_t end = host.shape.size() - dim;
-    const size_t begin = end - op.shape.size();
-
-    for (size_t j = 0; j < op.shape.size(); j++)
-        if (op.shape[j] != host.shape[begin + j])
-            return std::unexpected(MltError::makeShapeMismatch());
-
-    // temporary return
-    return hardamardBroadcastAligned(host, op, begin, end);
+Result<MltArray> mlt::compute::runtime::sub(const MltArray& a, const MltArray& b, size_t dim) noexcept
+{
+    return dispatchBinaryBroadcast<mlt::compute::kernels::BinaryOp::Sub>(a, b, dim);
 }
 
 Result<MltArray> mlt::compute::runtime::matmul(const MltArray& a, const MltArray& b) noexcept
@@ -171,7 +177,4 @@ Result<MltArray> mlt::compute::runtime::matmul(const MltArray& a, const MltArray
 
     return result;
 }
-
-
-
 
