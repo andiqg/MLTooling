@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 using MLTooling.Bindings;
 using MLTooling.Core;
 using MLTooling.Core.Handles;
@@ -10,8 +8,6 @@ public sealed class Tensor : IDisposable
 {
     internal TensorHandle Handle { get; }
     public Shape Shape { get; }
-
-    public SafeHandle DangerousHandle => Handle;
 
     public Tensor(Shape shape)
     {
@@ -41,18 +37,14 @@ public sealed class Tensor : IDisposable
 
     public Tensor Matmul(Tensor other)
     {
+        ArgumentNullException.ThrowIfNull(other);
+
         TensorHandle handle = MltWrapper.TensorMatmul(Handle, other.Handle);
-        Shape shape = MltWrapper.TensorShape(Handle);
-
-        return new Tensor(shape, handle);
+        return FromNative(handle);
     }
 
-    public Tensor ShareView()
-    {
-        TensorHandle handle = MltWrapper.TensorCopy(Handle);
-
-        return new Tensor(Shape, handle);
-    }
+    public Tensor ShareView() => FromNative(MltWrapper.TensorCopy(Handle));
+    public Tensor Clone() => FromNative(MltWrapper.TensorClone(Handle));
 
     public void Dispose() => Handle.Dispose();
 
@@ -61,4 +53,7 @@ public sealed class Tensor : IDisposable
         Handle = handle;
         Shape = shape;
     }
+
+    private static Tensor FromNative(TensorHandle handle)
+        => new Tensor(MltWrapper.TensorShape(handle), handle);
 }

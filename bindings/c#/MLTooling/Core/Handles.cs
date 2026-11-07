@@ -12,14 +12,18 @@ abstract class NativeHandle : SafeHandleZeroOrMinusOneIsInvalid
 
 internal sealed class TensorHandle : NativeHandle
 {
-    private long _pressureBytes;
+    private const long MinPressureBytes = 4096;
 
+    private long _pressureBytes;
 
     public TensorHandle()
     {}
 
     internal void SetMemoryPressure(long bytes)
     {
+        if (bytes < MinPressureBytes || _pressureBytes != 0)
+            return;
+
         _pressureBytes = bytes;
         GC.AddMemoryPressure(bytes);
     }

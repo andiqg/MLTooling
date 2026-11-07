@@ -33,6 +33,14 @@ internal static class MltWrapper
         return handle;
     }
 
+    public static TensorHandle TensorClone(TensorHandle src)
+    {
+        MLTerror err = MltNative.mltTensorClone(src, out TensorHandle handle);
+        MltError.ThrowIfError(err);
+
+        return handle;
+    }
+
     public static Shape TensorShape(TensorHandle handle)
     {
         MLTerror err = MltNative.mltTensorShape(handle, out MLTshape shape);
@@ -66,6 +74,30 @@ internal static class MltWrapper
     public static TensorHandle TensorMatmul(TensorHandle a, TensorHandle b)
     {
         MLTerror err = MltNative.mltTensorMatmul(a, b, out TensorHandle handle);
+        MltError.ThrowIfError(err);
+
+        return handle;
+    }
+
+    public static TensorHandle TensorMultiply(TensorHandle a, TensorHandle b)
+    {
+        MLTerror err = MltNative.mltTensorMultiply(a, b, out TensorHandle handle);
+        MltError.ThrowIfError(err);
+
+        return handle;
+    }
+
+    public static TensorHandle TensorAdd(TensorHandle a, TensorHandle b)
+    {
+        MLTerror err = MltNative.mltTensorAdd(a, b, out TensorHandle handle);
+        MltError.ThrowIfError(err);
+
+        return handle;
+    }
+
+    public static TensorHandle TensorSub(TensorHandle a, TensorHandle b)
+    {
+        MLTerror err = MltNative.mltTensorSub(a, b, out TensorHandle handle);
         MltError.ThrowIfError(err);
 
         return handle;

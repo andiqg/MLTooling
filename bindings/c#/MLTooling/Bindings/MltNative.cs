@@ -20,6 +20,7 @@ internal enum MLTErrorType : int
     RankMismatch,
     ShapeMismatch,
     InvalidArgument,
+    InvalidBroadcastingDimension,
     InternalError,
 }
 
@@ -87,6 +88,10 @@ internal static partial class MltNative
 
     [LibraryImport(DllName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorClone(TensorHandle src, out TensorHandle tensor);
+
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
     internal static partial MLTerror mltTensorShape(TensorHandle tensor, out MLTshape shape);
 
     [LibraryImport(DllName)]
@@ -104,4 +109,16 @@ internal static partial class MltNative
     [LibraryImport(DllName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
     internal static partial MLTerror mltTensorMatmul(TensorHandle a, TensorHandle b, out TensorHandle c);
+
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorMultiply(TensorHandle a, TensorHandle b, out TensorHandle tensor);
+
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorAdd(TensorHandle a, TensorHandle b, out TensorHandle tensor);
+
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallingConvention)])]
+    internal static partial MLTerror mltTensorSub(TensorHandle a, TensorHandle b, out TensorHandle tensor);
 }
